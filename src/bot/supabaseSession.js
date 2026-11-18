@@ -26,12 +26,7 @@ function supabaseSession() {
     // 3. Save session back to Supabase
     try {
       if (ctx.session) {
-        // Очищаем пустые сцены, чтобы не раздувать базу
-        if (Object.keys(ctx.session).length === 1 && ctx.session.__scenes && Object.keys(ctx.session.__scenes).length === 0) {
-          await db.saveSession(key, {});
-        } else {
-          await db.saveSession(key, ctx.session);
-        }
+        await db.saveSession(key, ctx.session);
       }
     } catch (err) {
       console.error('Error saving session to Supabase:', err);
