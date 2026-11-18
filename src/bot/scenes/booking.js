@@ -67,14 +67,60 @@ const bookingWizard = new Scenes.WizardScene(
       [Markup.button.callback('Сегодня', 'date_today'), Markup.button.callback('Завтра', 'date_tomorrow')]
     ];
     
-    await ctx.reply(`Автомобиль: ${ctx.wizard.state.carModel}\n\nВыберите дату для визита:`, {
-      reply_markup: { inline_keyboard: dates }
+    await ctx.reply('Пожалуйста, отправьте ваш контактный номер телефона для связи:', {
+      reply_markup: {
+        keyboard: [[{ text: '📱 Отправить контакт', request_contact: true }]],
+        resize_keyboard: true,
+        one_time_keyboard: true
+      }
     });
     
     return ctx.wizard.next();
   },
   
-  // Step 3: Choose Time
+  // Step 3: Handle Phone Input and Check Ban
+  async (ctx, next) => {
+    if (ctx.message && ctx.message.text && Object.values(buttons.replyKeyboard).flat().some(btn => btn.text === ctx.message.text)) {
+      await ctx.scene.leave();
+      return next(); 
+    }
+
+    let phone = '';
+    if (ctx.message && ctx.message.contact) {
+      phone = ctx.message.contact.phone_number;
+    } else if (ctx.message && ctx.message.text) {
+      phone = ctx.message.text;
+    } else {
+      await ctx.reply('Пожалуйста, отправьте контакт или напишите номер текстом.');
+      return;
+    }
+
+    phone = phone.replace(/\D/g, ''); // Оставляем только цифры
+    
+    // Проверка на бан
+    const isBanned = await db.isPhoneBanned(phone);
+    if (isBanned) {
+      await ctx.reply('К сожалению, на ближайшее время все места заняты. Попробуйте в следующий раз.', {
+        reply_markup: { keyboard: buttons.replyKeyboard, resize_keyboard: true }
+      });
+      return ctx.scene.leave();
+    }
+
+    ctx.wizard.state.phone = phone;
+    await db.updateUserPhone(ctx.from.id, phone).catch(() => {});
+
+    const dates = [
+      [Markup.button.callback('Сегодня', 'date_today'), Markup.button.callback('Завтра', 'date_tomorrow')]
+    ];
+
+    await ctx.reply(`Автомобиль: ${ctx.wizard.state.carModel}\nТелефон: +${phone}\n\nВыберите дату для визита:`, {
+      reply_markup: { inline_keyboard: dates }
+    });
+    
+    return ctx.wizard.next();
+  },
+
+  // Step 4: Choose Time
   async (ctx) => {
     if (ctx.callbackQuery && ctx.callbackQuery.data.startsWith('date_')) {
       const date = ctx.callbackQuery.data === 'date_today' ? 'Сегодня' : 'Завтра';
@@ -95,24 +141,30 @@ const bookingWizard = new Scenes.WizardScene(
     }
   },
   
-  // Step 4: Confirm Booking
+  // Step 5: Confirm Booking
   async (ctx) => {
     if (ctx.callbackQuery && ctx.callbackQuery.data.startsWith('time_')) {
       const time = ctx.callbackQuery.data.replace('time_', '');
       ctx.wizard.state.time = time;
       
-      const { service, date, carModel } = ctx.wizard.state;
-      await ctx.editMessageText(`Подтвердите запись:\n\nАвто: ${carModel}\nУслуга: ${service}\nДата: ${date}\nВремя: ${time}`, {
+      const { service, date, carModel, phone } = ctx.wizard.state;
+      
+      // Возвращаем главную клавиатуру перед показом инлайн кнопок подтверждения
+      await ctx.reply('Проверьте данные:', {
+        reply_markup: { keyboard: buttons.replyKeyboard, resize_keyboard: true }
+      });
+      
+      await ctx.reply(`Подтвердите запись:\n\nАвто: ${carModel}\nТелефон: +${phone}\nУслуга: ${service}\nДата: ${date}\nВремя: ${time}`, {
         reply_markup: { inline_keyboard: buttons.confirmBooking }
       });
       return ctx.wizard.next();
     }
   },
   
-  // Step 5: Finalize
+  // Step 6: Finalize
   async (ctx) => {
     if (ctx.callbackQuery && ctx.callbackQuery.data === 'confirm_yes') {
-      const { service, serviceId, date, time, carModel } = ctx.wizard.state;
+      const { service, serviceId, date, time, carModel, phone } = ctx.wizard.state;
       
       try {
         const core12Data = mapBookingData({
@@ -122,7 +174,8 @@ const bookingWizard = new Scenes.WizardScene(
           serviceId,
           date,
           time,
-          carModel
+          carModel,
+          phone
         });
         const crmResult = await core12Api.createCarVisit(core12Data); 
         

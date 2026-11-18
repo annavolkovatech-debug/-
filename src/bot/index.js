@@ -11,6 +11,26 @@ const stage = new Scenes.Stage([bookingScene]);
 
 // Используем кастомную сессию на базе Supabase вместо локальной памяти!
 bot.use(supabaseSession());
+
+// Admin Await Ban Middleware
+bot.use(async (ctx, next) => {
+  if (ctx.message && ctx.message.text && ctx.session?.awaitingBan) {
+    const isAdmin = await db.isAdmin(ctx.from.id);
+    if (isAdmin) {
+      const phone = ctx.message.text.replace(/\D/g, '');
+      if (phone && phone.length >= 10) {
+        await db.banPhone(phone);
+        await ctx.reply(`✅ Номер ${phone} успешно заблокирован.`);
+      } else {
+        await ctx.reply('❌ Некорректный номер. Блокировка отменена.');
+      }
+      ctx.session.awaitingBan = false;
+      return; // Завершаем обработку, не пускаем дальше
+    }
+  }
+  return next();
+});
+
 bot.use(stage.middleware());
 
 // Logging Middleware
@@ -122,6 +142,26 @@ bot.action('back_to_main', (ctx) => {
       reply_markup: { inline_keyboard: buttons.mainMenu }
     });
   });
+});
+
+// Admin Commands
+bot.hears('#заявки', async (ctx) => {
+  const isAdmin = await db.isAdmin(ctx.from.id);
+  if (!isAdmin) return;
+  try {
+    const count = await db.getTodayBookingsCount();
+    await ctx.reply(`📊 Заявок за сегодня: ${count}`);
+  } catch (err) {
+    await ctx.reply('❌ Ошибка при получении заявок.');
+  }
+});
+
+bot.hears('#бан', async (ctx) => {
+  const isAdmin = await db.isAdmin(ctx.from.id);
+  if (!isAdmin) return;
+  
+  ctx.session.awaitingBan = true;
+  await ctx.reply('Впишите номер телефона для бана (например, 79991234567):');
 });
 
 module.exports = bot;

@@ -27,7 +27,8 @@ const mapBookingData = (botData) => {
     
     // Данные клиента и привязка машины
     'car[ownerName]': botData.name,
-    'car[comment]': `TG ID: ${botData.telegramId}. Указанное авто: ${botData.carModel}`,
+    'car[comment]': `TG ID: ${botData.telegramId}. Указанное авто: ${botData.carModel}. Телефон: +${botData.phone}`,
+    'car[phone]': botData.phone,
     'car[id]': defaultCarId // Привязываем машину по ID из справочника Core12
   };
 };
