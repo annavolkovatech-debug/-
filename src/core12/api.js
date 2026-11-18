@@ -104,8 +104,31 @@ const core12Api = {
   },
   
   async getAvailableSlots(date) {
-    const timeslotsData = await this.getTimeslotsData(date, date);
-    return this.calculateAvailableSlots(timeslotsData, date);
+    try {
+      const headers = getAuthHeaders();
+      if (!headers) {
+        return this.generateMockSlots();
+      }
+
+      console.log(`Fetching timeslots from Core12 for date: ${date}`);
+      const response = await apiClient.get('/api/timeslots', {
+        headers,
+        params: {
+          date: date // Передаем дату в качестве параметра запроса (query parameter)
+        }
+      });
+      
+      // Здесь будет логика фильтрации слотов на основе ответа от Core12.
+      // Пока возвращаем моки, так как структура ответа сложная и требует вычислений
+      return this.generateMockSlots();
+    } catch (error) {
+      console.error('Error fetching timeslots from Core12:', error.message);
+      if (error.response) {
+        console.error('Core12 Response Data (timeslots):', JSON.stringify(error.response.data));
+        console.error('Core12 Response Status (timeslots):', error.response.status);
+      }
+      return this.generateMockSlots();
+    }
   },
   
   calculateAvailableSlots(timeslotsData, date, serviceDurationMinutes = 60) {
