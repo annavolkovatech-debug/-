@@ -1,25 +1,29 @@
 const axios = require('axios');
 require('dotenv').config();
 
-const CORE12_API_URL = process.env.CORE12_API_URL || 'https://cid3027.core12.ru/api';
+const CORE12_API_URL = process.env.CORE12_API_URL || 'https://cid3027.core12.ru'; // Используем домен из скриншота
 const CORE12_LOGIN = process.env.CORE12_LOGIN || '';
 const CORE12_PASSWORD = process.env.CORE12_PASSWORD || '';
 
+// Функция для генерации заголовка Basic Auth
+const getAuthHeaders = () => {
+  if (!CORE12_LOGIN || !CORE12_PASSWORD) {
+    return null;
+  }
+
+  // Кодируем логин и пароль в Base64
+  const base64Credentials = Buffer.from(`${CORE12_LOGIN}:${CORE12_PASSWORD}`).toString('base64');
+  
+  return {
+    'Authorization': `Basic ${base64Credentials}`,
+    'Content-Type': 'application/x-www-form-urlencoded'
+  };
+};
+
 // Базовый клиент
 const apiClient = axios.create({
-  baseURL: CORE12_API_URL,
-  headers: {
-    'Content-Type': 'application/x-www-form-urlencoded'
-  }
+  baseURL: CORE12_API_URL
 });
-
-// Если Core12 использует Basic Auth, мы можем добавить его так:
-if (CORE12_LOGIN && CORE12_PASSWORD) {
-  apiClient.defaults.auth = {
-    username: CORE12_LOGIN,
-    password: CORE12_PASSWORD
-  };
-}
 
 let sessionToken = null; // На случай, если нужно получать токен отдельным запросом
 
@@ -44,13 +48,17 @@ const core12Api = {
   },
 
   async getTimeslotsData(dateFrom, dateTo) {
-    if (!CORE12_LOGIN) {
-      console.log('Using mock timeslots (No credentials provided)');
-      return { mock: true };
-    }
-
     try {
-      const response = await apiClient.get('/timeslots', {
+      const headers = getAuthHeaders();
+      
+      // Если нет доступов — возвращаем тестовые данные для проверки бота
+      if (!headers) {
+        console.warn('⚠️ CORE12_LOGIN or CORE12_PASSWORD is not set. Returning mock timeslots.');
+        return ['10:00', '11:00', '14:30', '16:00'];
+      }
+
+      const response = await apiClient.get('/api/timeslots', {
+        headers,
         params: {
           dateFrom,
           dateTo
@@ -68,13 +76,17 @@ const core12Api = {
   },
 
   async createCarVisit(visitData) {
-    if (!CORE12_LOGIN) {
-      console.log('Mock creating visit:', visitData);
-      return { id: 'mock_visit_123', status: 'created' };
-    }
-
     try {
-      const response = await apiClient.post('/car-visits', visitData);
+      const headers = getAuthHeaders();
+      
+      if (!headers) {
+        console.warn('⚠️ CORE12 credentials missing. Mocking visit creation.');
+        return { id: 'mock_visit_' + Date.now(), status: 'new' };
+      }
+
+      const response = await apiClient.post('/api/car-visits', qs.stringify(visitData), {
+        headers
+      });
       return response.data;
     } catch (error) {
       console.error('Error creating car visit in Core12:', error.message);
