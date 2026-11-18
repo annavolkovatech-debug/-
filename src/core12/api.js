@@ -82,10 +82,14 @@ const core12Api = {
         return { id: 'mock_visit_' + Date.now(), status: 'new' };
       }
 
-      console.log('Sending payload to Core12:', JSON.stringify(visitData));
+      console.log('Sending payload to Core12 (JSON format):', JSON.stringify(visitData));
       
-      const response = await apiClient.post('/api/car-visits', qs.stringify(visitData), {
-        headers
+      // Попробуем отправить чистый JSON, так как 500 ошибка часто возникает при кривом парсинге form-urlencoded на стороне сервера
+      const response = await apiClient.post('/api/car-visits', visitData, {
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        }
       });
       return response.data;
     } catch (error) {

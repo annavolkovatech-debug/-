@@ -18,18 +18,22 @@ const mapBookingData = (botData) => {
     status: "new",
     payment_type: "cash",
     is_payed: false,
-    comment: `Запись через Telegram бота. Пользователь: ${botData.name} (ID: ${botData.telegramId})`,
+    comment: `Запись через Telegram бота. Авто: ${botData.carModel}, Тел: +${botData.phone}`,
     
-    // Передаем услугу
-    'provided_service[qty]': 1,
-    'provided_service[pointType][name]': botData.service,
-    // 'provided_service[pointType][id]': botData.serviceId, // Когда будут реальные ID услуг
+    // Core12 скорее всего падает из-за сложной вложенности application/x-www-form-urlencoded
+    // Попробуем передать минимальный набор полей для создания визита (согласно их Swagger)
+    car: JSON.stringify({
+      id: defaultCarId,
+      ownerName: botData.name,
+      comment: `TG ID: ${botData.telegramId}. Указанное авто: ${botData.carModel}. Телефон: +${botData.phone}`
+    }),
     
-    // Данные клиента и привязка машины
-    'car[ownerName]': botData.name,
-    'car[comment]': `TG ID: ${botData.telegramId}. Указанное авто: ${botData.carModel}. Телефон: +${botData.phone}`,
-    'car[phone]': botData.phone,
-    'car[id]': defaultCarId // Привязываем машину по ID из справочника Core12
+    provided_service: JSON.stringify({
+      qty: 1,
+      pointType: {
+        name: botData.service
+      }
+    })
   };
 };
 
