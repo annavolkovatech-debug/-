@@ -48,34 +48,34 @@ const bookingWizard = new Scenes.WizardScene(
 
   // Step 2: Handle Car Input
   async (ctx, next) => {
-    // Если пользователь нажал кнопку из Reply Keyboard (например, "Мои записи")
-    // находясь внутри сцены, мы должны выйти и дать обработать команду глобально.
-    if (ctx.message && ctx.message.text && Object.values(buttons.replyKeyboard).flat().some(btn => btn.text === ctx.message.text)) {
-      await ctx.scene.leave();
-      return next(); // Передаем управление дальше, чтобы сработал bot.hears
-    }
-
-    if (!ctx.message || !ctx.message.text) {
-      await ctx.reply('Пожалуйста, напишите марку и модель текстом.');
-      return;
-    }
-
-    // Сохраняем введенную машину
-    ctx.wizard.state.carModel = ctx.message.text;
-
-    const dates = [
-      [Markup.button.callback('Сегодня', 'date_today'), Markup.button.callback('Завтра', 'date_tomorrow')]
-    ];
-    
-    await ctx.reply('Пожалуйста, отправьте ваш контактный номер телефона для связи:', {
-      reply_markup: {
-        keyboard: [[{ text: '📱 Отправить контакт', request_contact: true }]],
-        resize_keyboard: true,
-        one_time_keyboard: true
+    try {
+      await db.logEvent(ctx.from.id, 'debug', { message: 'Reached Step 2', text: ctx.message?.text });
+      
+      if (ctx.message && ctx.message.text && Object.values(buttons.replyKeyboard).flat().some(btn => btn.text === ctx.message.text)) {
+        await ctx.scene.leave();
+        return next(); 
       }
-    });
-    
-    return ctx.wizard.next();
+
+      if (!ctx.message || !ctx.message.text) {
+        await ctx.reply('Пожалуйста, напишите марку и модель текстом.');
+        return;
+      }
+
+      ctx.wizard.state.carModel = ctx.message.text;
+
+      await ctx.reply('Пожалуйста, отправьте ваш контактный номер телефона для связи:', {
+        reply_markup: {
+          keyboard: [[{ text: '📱 Отправить контакт', request_contact: true }]],
+          resize_keyboard: true,
+          one_time_keyboard: true
+        }
+      });
+      
+      return ctx.wizard.next();
+    } catch (e) {
+      console.error(e);
+      await db.logEvent(ctx.from.id, 'error_step2', { error: e.message });
+    }
   },
   
   // Step 3: Handle Phone Input and Check Ban

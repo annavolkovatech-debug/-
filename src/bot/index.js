@@ -71,24 +71,24 @@ bot.start(async (ctx) => {
 });
 
 // Reply Keyboard Handlers
-bot.hears('💧 Автомойка', (ctx) => {
+bot.hears('💧 Автомойка', async (ctx) => {
   // Выходим из предыдущих сцен, если они были
-  ctx.scene.leave();
-  ctx.reply(texts.chooseWashService, {
+  await ctx.scene.leave();
+  await ctx.reply(texts.chooseWashService, {
     reply_markup: { inline_keyboard: buttons.washServices }
   });
 });
 
-bot.hears('✨ Детейлинг и Ремонт', (ctx) => {
-  ctx.scene.leave();
-  ctx.reply(texts.chooseDetailingService, {
+bot.hears('✨ Детейлинг и Ремонт', async (ctx) => {
+  await ctx.scene.leave();
+  await ctx.reply(texts.chooseDetailingService, {
     reply_markup: { inline_keyboard: buttons.detailingServices }
   });
 });
 
-bot.hears('🤝 Выкуп авто', (ctx) => {
-  ctx.scene.leave();
-  ctx.reply(texts.buyoutInfo, {
+bot.hears('🤝 Выкуп авто', async (ctx) => {
+  await ctx.scene.leave();
+  await ctx.reply(texts.buyoutInfo, {
     reply_markup: { inline_keyboard: buttons.masterContact }
   });
 });
@@ -119,26 +119,24 @@ bot.hears('📞 Контакты', async (ctx) => {
 });
 
 // Service selection triggers the booking wizard
-bot.action(/service_.+/, (ctx) => {
-  ctx.scene.enter('bookingWizard');
+bot.action(/service_.+/, async (ctx) => {
+  await ctx.scene.enter('bookingWizard');
   // Pass the callback data to the scene
   ctx.scene.state.actionData = ctx.callbackQuery.data;
 });
 
-bot.action('request_call', (ctx) => {
-  // В идеале тут запрашиваем контакт (reply_markup: { keyboard: [[{ text: 'Отправить номер', request_contact: true }]] })
-  // Но для простоты inline-бота просим написать в чат
-  ctx.editMessageText('Пожалуйста, напишите ваш номер телефона в ответном сообщении, и наш мастер свяжется с вами в ближайшее время.', {
+bot.action('request_call', async (ctx) => {
+  await ctx.editMessageText('Пожалуйста, напишите ваш номер телефона в ответном сообщении, и наш мастер свяжется с вами в ближайшее время.', {
     reply_markup: { inline_keyboard: buttons.backToMain }
   });
 });
 
-bot.action('back_to_main', (ctx) => {
-  ctx.scene.leave().catch(() => {});
-  ctx.editMessageText(texts.mainMenu, {
+bot.action('back_to_main', async (ctx) => {
+  await ctx.scene.leave().catch(() => {});
+  await ctx.editMessageText(texts.mainMenu, {
     reply_markup: { inline_keyboard: buttons.mainMenu }
-  }).catch(() => {
-    ctx.reply(texts.mainMenu, {
+  }).catch(async () => {
+    await ctx.reply(texts.mainMenu, {
       reply_markup: { inline_keyboard: buttons.mainMenu }
     });
   });
