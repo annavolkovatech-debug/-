@@ -101,7 +101,18 @@ const core12Api = {
   },
   
   calculateAvailableSlots(timeslotsData, date, serviceDurationMinutes = 60) {
-    return ['10:00', '12:00', '14:30', '16:00', '18:00'];
+    // В реальной интеграции тут будет парсинг JSON от Core12:
+    // 1. Берем timeslotsData.shifts (смены)
+    // 2. Берем timeslotsData.car_visits (занятое время)
+    // 3. Вычитаем занятое из рабочего
+    
+    // Пока генерируем слоты с 9:00 до 22:00 с шагом в 1 час
+    const slots = [];
+    for (let hour = 9; hour < 22; hour++) {
+      slots.push(`${hour}:00`);
+      slots.push(`${hour}:30`);
+    }
+    return slots;
   }
 };
 

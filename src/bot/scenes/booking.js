@@ -109,9 +109,28 @@ const bookingWizard = new Scenes.WizardScene(
     ctx.wizard.state.phone = phone;
     await db.updateUserPhone(ctx.from.id, phone).catch(() => {});
 
-    const dates = [
-      [Markup.button.callback('Сегодня', 'date_today'), Markup.button.callback('Завтра', 'date_tomorrow')]
-    ];
+    const dates = [];
+    const today = new Date();
+    
+    // Генерируем 5 дней вперед
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      
+      let label = '';
+      if (i === 0) label = 'Сегодня';
+      else if (i === 1) label = 'Завтра';
+      else label = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+      
+      const payload = `date_${i}`; // date_0, date_1, etc.
+      
+      // По 2 кнопки в ряд
+      if (i % 2 === 0) {
+        dates.push([Markup.button.callback(label, payload)]);
+      } else {
+        dates[Math.floor(i / 2)].push(Markup.button.callback(label, payload));
+      }
+    }
 
     await ctx.reply(`Автомобиль: ${ctx.wizard.state.carModel}\nТелефон: +${phone}\n\nВыберите дату для визита:`, {
       reply_markup: { inline_keyboard: dates }
@@ -123,12 +142,27 @@ const bookingWizard = new Scenes.WizardScene(
   // Step 4: Choose Time
   async (ctx) => {
     if (ctx.callbackQuery && ctx.callbackQuery.data.startsWith('date_')) {
-      const date = ctx.callbackQuery.data === 'date_today' ? 'Сегодня' : 'Завтра';
-      ctx.wizard.state.date = date;
+      const offsetIndex = parseInt(ctx.callbackQuery.data.replace('date_', ''), 10);
+      
+      const selectedDate = new Date();
+      selectedDate.setDate(selectedDate.getDate() + offsetIndex);
+      
+      let dateLabel = '';
+      if (offsetIndex === 0) dateLabel = 'Сегодня';
+      else if (offsetIndex === 1) dateLabel = 'Завтра';
+      else dateLabel = selectedDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+
+      ctx.wizard.state.date = dateLabel;
       
       try {
-        const slots = await core12Api.getAvailableSlots(date);
-        const timeButtons = slots.map(slot => [Markup.button.callback(slot, `time_${slot}`)]);
+        const slots = await core12Api.getAvailableSlots(dateLabel);
+        
+        // Разбиваем слоты по 3 в ряд для красивой сетки
+        const timeButtons = [];
+        for (let i = 0; i < slots.length; i += 3) {
+          const row = slots.slice(i, i + 3).map(slot => Markup.button.callback(slot, `time_${slot}`));
+          timeButtons.push(row);
+        }
         
         await ctx.editMessageText(texts.chooseTime, {
           reply_markup: { inline_keyboard: timeButtons }
