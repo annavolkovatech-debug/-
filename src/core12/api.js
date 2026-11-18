@@ -2,21 +2,50 @@ const axios = require('axios');
 require('dotenv').config();
 
 const CORE12_API_URL = process.env.CORE12_API_URL || 'https://cid3027.core12.ru/api';
-const CORE12_API_KEY = process.env.CORE12_API_KEY || '';
+const CORE12_LOGIN = process.env.CORE12_LOGIN || '';
+const CORE12_PASSWORD = process.env.CORE12_PASSWORD || '';
 
+// Базовый клиент
 const apiClient = axios.create({
   baseURL: CORE12_API_URL,
   headers: {
-    'Authorization': `Bearer ${CORE12_API_KEY}`,
     'Content-Type': 'application/x-www-form-urlencoded'
   }
 });
 
+// Если Core12 использует Basic Auth, мы можем добавить его так:
+if (CORE12_LOGIN && CORE12_PASSWORD) {
+  apiClient.defaults.auth = {
+    username: CORE12_LOGIN,
+    password: CORE12_PASSWORD
+  };
+}
+
+let sessionToken = null; // На случай, если нужно получать токен отдельным запросом
+
 const core12Api = {
+  // Метод для получения токена (если Core12 требует отдельного запроса на авторизацию)
+  async authenticate() {
+    if (!CORE12_LOGIN || !CORE12_PASSWORD) {
+       console.log('No Core12 credentials provided. Using mock mode.');
+       return false;
+    }
+    
+    try {
+      // Пример того, как это могло бы выглядеть. Точный URL нужен из документации.
+      // const res = await axios.post(`${CORE12_API_URL}/auth/login`, { login: CORE12_LOGIN, password: CORE12_PASSWORD });
+      // sessionToken = res.data.token;
+      // apiClient.defaults.headers.common['Authorization'] = `Bearer ${sessionToken}`;
+      return true;
+    } catch (err) {
+      console.error('Core12 Auth Error:', err.message);
+      return false;
+    }
+  },
+
   async getTimeslotsData(dateFrom, dateTo) {
-    // Если ключ не задан или это тест, возвращаем мок-данные
-    if (!CORE12_API_KEY || CORE12_API_KEY === 'placeholder_key') {
-      console.log('Using mock timeslots (No API key provided)');
+    if (!CORE12_LOGIN) {
+      console.log('Using mock timeslots (No credentials provided)');
       return { mock: true };
     }
 
@@ -30,7 +59,6 @@ const core12Api = {
       return response.data;
     } catch (error) {
       console.error('Error fetching timeslots from Core12:', error.message);
-      // Fallback к мок-данным, если API ответило ошибкой 401/403 (неверный токен)
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
          console.log('Auth error with Core12 API. Returning mock slots for testing.');
          return { mock: true };
@@ -40,7 +68,7 @@ const core12Api = {
   },
 
   async createCarVisit(visitData) {
-    if (!CORE12_API_KEY || CORE12_API_KEY === 'placeholder_key') {
+    if (!CORE12_LOGIN) {
       console.log('Mock creating visit:', visitData);
       return { id: 'mock_visit_123', status: 'created' };
     }
@@ -57,13 +85,8 @@ const core12Api = {
     }
   },
   
-  // Этот метод вызывается из сцены бронирования для получения слотов
   async getAvailableSlots(date) {
-    // Сначала пытаемся получить сырые данные из Core12
-    // Для реального запроса нужны правильные форматы дат, пока передаем просто date
     const timeslotsData = await this.getTimeslotsData(date, date);
-    
-    // Вычисляем доступные слоты (пока возвращаем жесткий список для демо)
     return this.calculateAvailableSlots(timeslotsData, date);
   },
   
