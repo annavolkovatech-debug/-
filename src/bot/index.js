@@ -113,7 +113,15 @@ bot.hears('📋 Мои записи', async (ctx) => {
   }
 });
 
-bot.hears('📞 Контакты', (ctx) => {
+bot.hears('📍 График и Адрес', async (ctx) => {
+  await ctx.reply(
+    '📍 *Наш адрес:*\nМосква, 2-я улица Измайловского Зверинца, 2\n\n' +
+    '🕒 *График работы:*\nЕжедневно с 9:00 до 22:00',
+    { parse_mode: 'Markdown' }
+  );
+});
+
+bot.hears('📞 Контакты', async (ctx) => {
   ctx.scene.leave();
   ctx.reply(texts.contactAdmin);
 });
