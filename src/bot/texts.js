@@ -18,11 +18,10 @@ module.exports = {
   },
   buttons: {
     replyKeyboard: [
-    [{ text: '💧 Автомойка' }, { text: '✨ Детейлинг и Ремонт' }],
-    [{ text: '🤝 Выкуп авто' }, { text: '📋 Мои записи' }],
-    [{ text: '📞 Контакты' }]
-  ]
-};],
+      [{ text: '💧 Автомойка' }, { text: '✨ Детейлинг и Ремонт' }],
+      [{ text: '🤝 Выкуп авто' }, { text: '📋 Мои записи' }],
+      [{ text: '📞 Контакты' }]
+    ],
     washServices: [
       [{ text: 'Стандарт (от 1 700 ₽)', callback_data: 'service_wash_standard' }],
       [{ text: 'Комплекс (от 2 200 ₽)', callback_data: 'service_wash_complex' }],
