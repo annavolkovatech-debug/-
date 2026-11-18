@@ -2,24 +2,35 @@ const supabase = require('./client');
 
 const db = {
   async getUser(telegramId) {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('telegram_id', telegramId)
-      .single();
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    if (!supabase) return null;
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('telegram_id', telegramId)
+        .single();
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    } catch(e) {
+      console.error(e);
+      return null;
+    }
   },
 
   async createUser(userData) {
     if (!supabase) return null;
-    const { data, error } = await supabase
-      .from('users')
-      .upsert(userData, { onConflict: 'telegram_id' })
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .upsert(userData, { onConflict: 'telegram_id' })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch(e) {
+      console.error('Error creating user:', e);
+      return null;
+    }
   },
 
   async saveBooking(bookingData) {
@@ -69,6 +80,7 @@ const db = {
   },
 
   async isAdmin(telegramId) {
+    if (!supabase) return false;
     try {
       const { data } = await supabase.from('users').select('is_admin').eq('telegram_id', telegramId).single();
       return data ? data.is_admin : false;
@@ -138,6 +150,7 @@ const db = {
   },
 
   async logEvent(telegramId, action, details = {}) {
+    if (!supabase) return;
     try {
       await supabase.from('bot_logs').insert({
         telegram_id: telegramId,
