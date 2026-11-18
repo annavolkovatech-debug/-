@@ -17,12 +17,10 @@ module.exports = {
     buyoutInfo: `🤝 Выкуп авто\n\nМы готовы оперативно оценить и выкупить ваш автомобиль. Свяжитесь с нашим специалистом для предварительной оценки по фото или договоритесь о встрече.`
   },
   buttons: {
-    mainMenu: [
-      [{ text: '💧 Автомойка', callback_data: 'category_wash' }],
-      [{ text: '✨ Детейлинг и Ремонт', callback_data: 'category_detailing' }],
-      [{ text: '🤝 Выкуп авто', callback_data: 'category_buyout' }],
-      [{ text: '📋 Мои записи', callback_data: 'my_bookings' }],
-      [{ text: '📞 Контакты', callback_data: 'contact_admin' }]
+    replyKeyboard: [
+      [{ text: '💧 Автомойка' }, { text: '✨ Детейлинг и Ремонт' }],
+      [{ text: '🤝 Выкуп авто' }, { text: '📋 Мои записи' }],
+      [{ text: '📞 Контакты' }]
     ],
     washServices: [
       [{ text: 'Стандарт (от 1 700 ₽)', callback_data: 'service_wash_standard' }],

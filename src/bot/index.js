@@ -32,27 +32,41 @@ bot.start(async (ctx) => {
 
   await ctx.reply(texts.welcome, {
     reply_markup: {
-      inline_keyboard: buttons.mainMenu
+      keyboard: buttons.replyKeyboard,
+      resize_keyboard: true
     }
   });
 });
 
-// Category Handlers - Enter Wizard
-bot.action(/category_.+/, (ctx) => {
-  // We enter the wizard and pass the action so the wizard can process it in step 2
-  ctx.scene.enter('bookingWizard');
-  // Immediately trigger the next step in the wizard with the same callback data
-  ctx.scene.state.actionData = ctx.callbackQuery.data;
+// Reply Keyboard Handlers
+bot.hears('💧 Автомойка', (ctx) => {
+  // Выходим из предыдущих сцен, если они были
+  ctx.scene.leave();
+  ctx.reply(texts.chooseWashService, {
+    reply_markup: { inline_keyboard: buttons.washServices }
+  });
 });
 
-// Action Handlers for non-booking flows
-bot.action('my_bookings', async (ctx) => {
+bot.hears('✨ Детейлинг и Ремонт', (ctx) => {
+  ctx.scene.leave();
+  ctx.reply(texts.chooseDetailingService, {
+    reply_markup: { inline_keyboard: buttons.detailingServices }
+  });
+});
+
+bot.hears('🤝 Выкуп авто', (ctx) => {
+  ctx.scene.leave();
+  ctx.reply(texts.buyoutInfo, {
+    reply_markup: { inline_keyboard: buttons.masterContact }
+  });
+});
+
+bot.hears('📋 Мои записи', async (ctx) => {
+  ctx.scene.leave();
   try {
     const bookings = await db.getUserBookings(ctx.from.id);
     if (!bookings || bookings.length === 0) {
-      return ctx.editMessageText(texts.myBookingsEmpty, {
-        reply_markup: { inline_keyboard: buttons.backToMain }
-      });
+      return ctx.reply(texts.myBookingsEmpty);
     }
     
     let replyText = 'Ваши активные записи:\n\n';
@@ -60,19 +74,23 @@ bot.action('my_bookings', async (ctx) => {
       replyText += `${i + 1}. Услуга: ${b.service_name}\nДата: ${b.booking_date}\nВремя: ${b.booking_time}\nСтатус: ${b.status}\n\n`;
     });
     
-    ctx.editMessageText(replyText, {
-      reply_markup: { inline_keyboard: buttons.backToMain }
-    });
+    ctx.reply(replyText);
   } catch (err) {
     console.error(err);
     ctx.reply(texts.bookingError);
   }
 });
 
-bot.action('contact_admin', (ctx) => {
-  ctx.editMessageText(texts.contactAdmin, {
-    reply_markup: { inline_keyboard: buttons.backToMain }
-  });
+bot.hears('📞 Контакты', (ctx) => {
+  ctx.scene.leave();
+  ctx.reply(texts.contactAdmin);
+});
+
+// Service selection triggers the booking wizard
+bot.action(/service_.+/, (ctx) => {
+  ctx.scene.enter('bookingWizard');
+  // Pass the callback data to the scene
+  ctx.scene.state.actionData = ctx.callbackQuery.data;
 });
 
 bot.action('request_call', (ctx) => {
