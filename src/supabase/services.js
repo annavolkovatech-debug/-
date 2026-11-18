@@ -12,6 +12,7 @@ const db = {
   },
 
   async createUser(userData) {
+    if (!supabase) return null;
     const { data, error } = await supabase
       .from('users')
       .upsert(userData, { onConflict: 'telegram_id' })
@@ -109,20 +110,31 @@ const db = {
   },
 
   async getSession(key) {
-    const { data, error } = await supabase
-      .from('telegraf_sessions')
-      .select('session')
-      .eq('id', key)
-      .single();
-    if (error && error.code !== 'PGRST116') throw error;
-    return data ? data.session : null;
+    if (!supabase) return null;
+    try {
+      const { data, error } = await supabase
+        .from('telegraf_sessions')
+        .select('session')
+        .eq('id', key)
+        .single();
+      if (error && error.code !== 'PGRST116') throw error;
+      return data ? data.session : null;
+    } catch(e) {
+      console.error('getSession error:', e);
+      return null;
+    }
   },
 
   async saveSession(key, session) {
-    const { error } = await supabase
-      .from('telegraf_sessions')
-      .upsert({ id: key, session, updated_at: new Date().toISOString() }, { onConflict: 'id' });
-    if (error) throw error;
+    if (!supabase) return;
+    try {
+      const { error } = await supabase
+        .from('telegraf_sessions')
+        .upsert({ id: key, session, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+      if (error) throw error;
+    } catch(e) {
+      console.error('saveSession error:', e);
+    }
   },
 
   async logEvent(telegramId, action, details = {}) {
