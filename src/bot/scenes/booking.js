@@ -47,12 +47,12 @@ const bookingWizard = new Scenes.WizardScene(
   },
 
   // Step 2: Handle Car Input
-  async (ctx) => {
+  async (ctx, next) => {
     // Если пользователь нажал кнопку из Reply Keyboard (например, "Мои записи")
     // находясь внутри сцены, мы должны выйти и дать обработать команду глобально.
     if (ctx.message && ctx.message.text && Object.values(buttons.replyKeyboard).flat().some(btn => btn.text === ctx.message.text)) {
       await ctx.scene.leave();
-      return; 
+      return next(); // Передаем управление дальше, чтобы сработал bot.hears
     }
 
     if (!ctx.message || !ctx.message.text) {

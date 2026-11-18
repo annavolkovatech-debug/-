@@ -65,6 +65,35 @@ const db = {
       .select('telegram_id');
     if (error) throw error;
     return data;
+  },
+
+  async getSession(key) {
+    const { data, error } = await supabase
+      .from('telegraf_sessions')
+      .select('session')
+      .eq('id', key)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data ? data.session : null;
+  },
+
+  async saveSession(key, session) {
+    const { error } = await supabase
+      .from('telegraf_sessions')
+      .upsert({ id: key, session, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (error) throw error;
+  },
+
+  async logEvent(telegramId, action, details = {}) {
+    try {
+      await supabase.from('bot_logs').insert({
+        telegram_id: telegramId,
+        action,
+        details
+      });
+    } catch (e) {
+      console.error('Error saving log:', e);
+    }
   }
 };
 

@@ -1,19 +1,31 @@
-const { Telegraf, session, Scenes } = require('telegraf');
+const { Telegraf, Scenes } = require('telegraf');
 const { texts, buttons } = require('./texts');
 const db = require('../supabase/services');
 const bookingScene = require('./scenes/booking');
+const supabaseSession = require('./supabaseSession');
 require('dotenv').config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN || '9194916047:AAFQJzJKOf-IttwlXRzArp3MB1iOqrXbogw');
 
 const stage = new Scenes.Stage([bookingScene]);
 
-bot.use(session());
+// Используем кастомную сессию на базе Supabase вместо локальной памяти!
+bot.use(supabaseSession());
 bot.use(stage.middleware());
 
 // Logging Middleware
 bot.use(async (ctx, next) => {
-  console.log(`[${new Date().toISOString()}] Update type: ${ctx.updateType} from user: ${ctx.from?.id}`);
+  const telegramId = ctx.from?.id;
+  const updateType = ctx.updateType;
+  console.log(`[${new Date().toISOString()}] Update type: ${updateType} from user: ${telegramId}`);
+  
+  if (telegramId) {
+    let actionDetail = updateType;
+    if (ctx.message && ctx.message.text) actionDetail = `Message: ${ctx.message.text}`;
+    if (ctx.callbackQuery) actionDetail = `Callback: ${ctx.callbackQuery.data}`;
+    await db.logEvent(telegramId, updateType, { details: actionDetail }).catch(() => {});
+  }
+  
   await next();
 });
 
