@@ -13,27 +13,24 @@ const mapBookingData = (botData) => {
   // В рабочей версии здесь можно реализовать динамический поиск ID через API по названию машины
   const defaultCarId = botData.carModel?.toLowerCase().includes('kia rio') ? '8421' : '8421'; // Используем 8421 по умолчанию для теста
 
+  // Строго по примеру из Swagger Core12
+  // Убираем поля, которые мы не можем сгенерировать корректно (они должны быть опциональными на стороне Core12)
   return {
     creation_date: creationDateISO,
     status: "new",
     payment_type: "cash",
     is_payed: false,
     comment: `Запись через Telegram бота. Авто: ${botData.carModel}, Тел: +${botData.phone}`,
-    
-    // Core12 скорее всего падает из-за сложной вложенности application/x-www-form-urlencoded
-    // Попробуем передать минимальный набор полей для создания визита (согласно их Swagger)
-    car: JSON.stringify({
-      id: defaultCarId,
+    car: {
       ownerName: botData.name,
-      comment: `TG ID: ${botData.telegramId}. Указанное авто: ${botData.carModel}. Телефон: +${botData.phone}`
-    }),
-    
-    provided_service: JSON.stringify({
+      comment: `TG ID: ${botData.telegramId}. Авто: ${botData.carModel}. Телефон: +${botData.phone}`
+    },
+    provided_service: {
       qty: 1,
       pointType: {
         name: botData.service
       }
-    })
+    }
   };
 };
 
