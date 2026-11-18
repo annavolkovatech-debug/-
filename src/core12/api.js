@@ -82,12 +82,18 @@ const core12Api = {
         return { id: 'mock_visit_' + Date.now(), status: 'new' };
       }
 
+      console.log('Sending payload to Core12:', JSON.stringify(visitData));
+      
       const response = await apiClient.post('/api/car-visits', qs.stringify(visitData), {
         headers
       });
       return response.data;
     } catch (error) {
       console.error('Error creating car visit in Core12:', error.message);
+      if (error.response) {
+        console.error('Core12 Response Data:', JSON.stringify(error.response.data));
+        console.error('Core12 Response Status:', error.response.status);
+      }
       // Return a mock success so the bot flow doesn't break for the user while we debug the API payload
       return { id: 'mock_visit_fallback', status: 'mock_created_due_to_error' };
     }
