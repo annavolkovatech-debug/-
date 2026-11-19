@@ -70,6 +70,11 @@ bot.start(async (ctx) => {
   });
 });
 
+// Команда для получения ID чата (полезно для настройки уведомлений в группу)
+bot.command('chatid', (ctx) => {
+  ctx.reply(`ID этого чата: ${ctx.chat.id}`);
+});
+
 // Reply Keyboard Handlers
 bot.hears('💧 Автомойка', async (ctx) => {
   // Выходим из предыдущих сцен, если они были

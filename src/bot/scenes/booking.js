@@ -258,6 +258,25 @@ const bookingWizard = new Scenes.WizardScene(
         });
         
         await ctx.editMessageText(texts.bookingSuccess);
+
+        // Отправка уведомления в группу/канал админов
+        const adminChatId = process.env.ADMIN_CHAT_ID;
+        if (adminChatId) {
+          const username = ctx.from.username ? `@${ctx.from.username}` : ctx.from.first_name;
+          const notificationText = `🆕 <b>Новая заявка!</b>\n\n` +
+            `👤 <b>Клиент:</b> ${username}\n` +
+            `📞 <b>Телефон:</b> +${phone}\n` +
+            `📅 <b>Дата и время:</b> ${date} в ${time}\n` +
+            `🚙 <b>Автомобиль:</b> ${carModel}\n` +
+            `🔢 <b>Гос. номер:</b> ${carNumber}\n` +
+            `🛠 <b>Услуга:</b> ${service}`;
+            
+          try {
+            await ctx.telegram.sendMessage(adminChatId, notificationText, { parse_mode: 'HTML' });
+          } catch (err) {
+            console.error('Failed to send admin notification:', err);
+          }
+        }
       } catch (err) {
         console.error(err);
         await ctx.editMessageText(texts.bookingError);
