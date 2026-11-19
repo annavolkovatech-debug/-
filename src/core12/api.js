@@ -1,5 +1,5 @@
 const axios = require('axios');
-const qs = require('qs');
+const qs = require('qs'); // Для корректного парсинга вложенных объектов в x-www-form-urlencoded
 require('dotenv').config();
 
 const CORE12_API_URL = process.env.CORE12_API_URL || 'https://cid3027.core12.ru'; // Используем домен из скриншота
@@ -23,7 +23,12 @@ const getAuthHeaders = () => {
 
 // Базовый клиент
 const apiClient = axios.create({
-  baseURL: CORE12_API_URL
+  baseURL: CORE12_API_URL,
+  headers: {
+    // Возвращаем x-www-form-urlencoded, так как Swagger говорит именно об этом
+    'Content-Type': 'application/x-www-form-urlencoded', 
+    'Accept': 'application/json'
+  }
 });
 
 let sessionToken = null; // На случай, если нужно получать токен отдельным запросом
@@ -82,14 +87,14 @@ const core12Api = {
         return { id: 'mock_visit_' + Date.now(), status: 'new' };
       }
 
-      console.log('Sending payload to Core12 (JSON format):', JSON.stringify(visitData));
+      // Используем библиотеку qs, чтобы вложенные объекты превратились в правильный URL encoded формат
+      // Например: car[ownerName]=Имя&car[comment]=...
+      const encodedData = qs.stringify(visitData, { allowDots: true, encode: true });
       
-      // Попробуем отправить чистый JSON, так как 500 ошибка часто возникает при кривом парсинге form-urlencoded на стороне сервера
-      const response = await apiClient.post('/api/car-visits', visitData, {
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json'
-        }
+      console.log(`Sending payload to Core12 (x-www-form-urlencoded):`, encodedData);
+
+      const response = await apiClient.post('/api/car-visits', encodedData, {
+        headers
       });
       return response.data;
     } catch (error) {
