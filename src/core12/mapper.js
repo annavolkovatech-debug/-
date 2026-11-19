@@ -45,25 +45,14 @@ const mapBookingToCore12 = (botData) => {
     processed_date: exitDateISO,
     status: "new",
     checkup: "verified", // Подтверждаем номер автоматически
-    veracity: "strong",  // Высокая достоверность
     payment_type: "cash",
     is_payed: false, 
     comment: `Запись через Telegram бота. Авто: ${botData.carModel}, Гос. номер: ${botData.carNumber}, Тел: +${botData.phone}`,
     recognized_number: botData.carNumber,
     
-    group: {
-      name: "Телеграм-бот"
-    },
-    labels: [
-      { labels: "Телеграм-бот" }
-    ],
-    
     car: {
       number: botData.carNumber,
       ownerName: botData.name,
-      group: {
-        name: "Телеграм-бот"
-      },
       comment: `TG ID: ${botData.telegramId}. Авто: ${botData.carModel}. Гос. номер: ${botData.carNumber}. Телефон: +${botData.phone}`
     },
     
