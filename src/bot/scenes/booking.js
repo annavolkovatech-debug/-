@@ -211,7 +211,14 @@ const bookingWizard = new Scenes.WizardScene(
           carModel,
           phone
         });
-        const crmResult = await core12Api.createCarVisit(core12Data); 
+        let crmResult;
+        try {
+          crmResult = await core12Api.createCarVisit(core12Data); 
+          console.log('Successfully mapped and sent booking to Core12');
+        } catch (e) {
+          console.error('Core12 integration error:', e);
+          // Мы продолжаем работу даже если Core12 упал, чтобы клиент получил подтверждение
+        }
         
         await db.saveBooking({
           telegram_id: ctx.from.id,

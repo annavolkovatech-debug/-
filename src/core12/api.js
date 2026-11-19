@@ -1,5 +1,6 @@
 const axios = require('axios');
 require('dotenv').config();
+const { mapBookingToCore12 } = require('./mapper');
 
 const CORE12_API_URL = process.env.CORE12_API_URL || 'https://cid3027.core12.ru'; // Используем домен из скриншота
 const CORE12_LOGIN = process.env.CORE12_LOGIN || '';
@@ -77,7 +78,7 @@ const core12Api = {
     }
   },
 
-  async createCarVisit(visitData) {
+  async createCarVisit(botData) {
     try {
       const headers = getAuthHeaders();
       
@@ -85,6 +86,8 @@ const core12Api = {
         console.warn('⚠️ CORE12 credentials missing. Mocking visit creation.');
         return { id: 'mock_visit_' + Date.now(), status: 'new' };
       }
+
+      const visitData = mapBookingToCore12(botData);
 
       // Возвращаем JSON, так как Core12 работает с application/json
       console.log(`Sending payload to Core12 (JSON):`, JSON.stringify(visitData));
@@ -112,11 +115,19 @@ const core12Api = {
       }
 
       console.log(`Fetching timeslots from Core12 for date: ${date}`);
+      
+      // В Swagger параметры обозначены как query parameters:
+      // dateFrom: string($datetime)
+      // dateTo: string($datetime)
+      // Пример формата: 2026-11-19T00:00:00+03:00
+      const dateFrom = `${date}T00:00:00+03:00`;
+      const dateTo = `${date}T23:59:59+03:00`;
+
       const response = await apiClient.get('/api/timeslots', {
         headers,
         params: {
-          dateFrom: `${date}T00:00:00.000Z`,
-          dateTo: `${date}T23:59:59.999Z`
+          dateFrom,
+          dateTo
         }
       });
       

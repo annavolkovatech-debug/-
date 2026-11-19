@@ -1,20 +1,26 @@
-const mapBookingData = (botData) => {
-  const now = new Date();
+const mapBookingToCore12 = (botData) => {
+  // Определяем дату
+  let targetDate = new Date();
   if (botData.date === 'Завтра') {
-    now.setDate(now.getDate() + 1);
+    targetDate.setDate(targetDate.getDate() + 1);
+  } else if (botData.date.match(/^\d{2}\.\d{2}$/)) {
+    // Если формат "21.11"
+    const [day, month] = botData.date.split('.');
+    targetDate.setMonth(parseInt(month) - 1);
+    targetDate.setDate(parseInt(day));
   }
   
-  const [hours, minutes] = botData.time.split(':');
-  now.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-  const creationDateISO = now.toISOString();
-
-  // Core12 ожидает application/x-www-form-urlencoded
-  // Если у клиента Kia Rio, мы привязываем тестовый ID 8421, как в документации
-  // В рабочей версии здесь можно реализовать динамический поиск ID через API по названию машины
-  const defaultCarId = botData.carModel?.toLowerCase().includes('kia rio') ? '8421' : '8421'; // Используем 8421 по умолчанию для теста
+  const yyyy = targetDate.getFullYear();
+  const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(targetDate.getDate()).padStart(2, '0');
+  
+  // Формат времени с учетом таймзоны (Москва)
+  const creationDateISO = `${yyyy}-${mm}-${dd}T${botData.time}:00+03:00`;
+  
+  // Ищем ID автомобиля в справочнике Core12 (заглушка для тестов)
+  const defaultCarId = botData.carModel?.toLowerCase().includes('kia rio') ? '8421' : '8421'; 
 
   // Строго по примеру из Swagger Core12
-  // Возвращаем в виде обычного объекта (JSON)
   return {
     creation_date: creationDateISO,
     status: "new",
@@ -36,4 +42,4 @@ const mapBookingData = (botData) => {
   };
 };
 
-module.exports = { mapBookingData };
+module.exports = { mapBookingToCore12 };
