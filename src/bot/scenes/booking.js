@@ -46,7 +46,7 @@ const bookingWizard = new Scenes.WizardScene(
     return ctx.wizard.next();
   },
 
-  // Step 2: Handle Car Input
+  // Step 2: Handle Car Model Input
   async (ctx, next) => {
     try {
       await db.logEvent(ctx.from.id, 'debug', { message: 'Reached Step 2', text: ctx.message?.text });
@@ -63,6 +63,30 @@ const bookingWizard = new Scenes.WizardScene(
 
       ctx.wizard.state.carModel = ctx.message.text;
 
+      await ctx.reply('Напишите гос. номер вашего автомобиля (например: А123БВ77):');
+      
+      return ctx.wizard.next();
+    } catch (e) {
+      console.error(e);
+      await db.logEvent(ctx.from.id, 'error_step2', { error: e.message });
+    }
+  },
+
+  // Step 3: Handle Car Number Input
+  async (ctx, next) => {
+    try {
+      if (ctx.message && ctx.message.text && Object.values(buttons.replyKeyboard).flat().some(btn => btn.text === ctx.message.text)) {
+        await ctx.scene.leave();
+        return next(); 
+      }
+
+      if (!ctx.message || !ctx.message.text) {
+        await ctx.reply('Пожалуйста, напишите гос. номер текстом.');
+        return;
+      }
+
+      ctx.wizard.state.carNumber = ctx.message.text;
+
       await ctx.reply('Пожалуйста, отправьте ваш контактный номер телефона для связи:', {
         reply_markup: {
           keyboard: [[{ text: '📱 Отправить контакт', request_contact: true }]],
@@ -74,11 +98,10 @@ const bookingWizard = new Scenes.WizardScene(
       return ctx.wizard.next();
     } catch (e) {
       console.error(e);
-      await db.logEvent(ctx.from.id, 'error_step2', { error: e.message });
     }
   },
   
-  // Step 3: Handle Phone Input and Check Ban
+  // Step 4: Handle Phone Input and Check Ban
   async (ctx, next) => {
     if (ctx.message && ctx.message.text && Object.values(buttons.replyKeyboard).flat().some(btn => btn.text === ctx.message.text)) {
       await ctx.scene.leave();
@@ -132,14 +155,14 @@ const bookingWizard = new Scenes.WizardScene(
       }
     }
 
-    await ctx.reply(`Автомобиль: ${ctx.wizard.state.carModel}\nТелефон: +${phone}\n\nВыберите дату для визита:`, {
+    await ctx.reply(`Автомобиль: ${ctx.wizard.state.carModel}\nГос. номер: ${ctx.wizard.state.carNumber}\nТелефон: +${phone}\n\nВыберите дату для визита:`, {
       reply_markup: { inline_keyboard: dates }
     });
     
     return ctx.wizard.next();
   },
 
-  // Step 4: Choose Time
+  // Step 5: Choose Time
   async (ctx) => {
     if (ctx.callbackQuery && ctx.callbackQuery.data.startsWith('date_')) {
       const offsetIndex = parseInt(ctx.callbackQuery.data.replace('date_', ''), 10);
@@ -177,30 +200,30 @@ const bookingWizard = new Scenes.WizardScene(
     }
   },
   
-  // Step 5: Confirm Booking
+  // Step 6: Confirm Booking
   async (ctx) => {
     if (ctx.callbackQuery && ctx.callbackQuery.data.startsWith('time_')) {
       const time = ctx.callbackQuery.data.replace('time_', '');
       ctx.wizard.state.time = time;
       
-      const { service, date, carModel, phone } = ctx.wizard.state;
+      const { service, date, carModel, carNumber, phone } = ctx.wizard.state;
       
       // Возвращаем главную клавиатуру перед показом инлайн кнопок подтверждения
       await ctx.reply('Проверьте данные:', {
         reply_markup: { keyboard: buttons.replyKeyboard, resize_keyboard: true }
       });
       
-      await ctx.reply(`Подтвердите запись:\n\nАвто: ${carModel}\nТелефон: +${phone}\nУслуга: ${service}\nДата: ${date}\nВремя: ${time}`, {
+      await ctx.reply(`Подтвердите запись:\n\nАвто: ${carModel}\nГос. номер: ${carNumber}\nТелефон: +${phone}\nУслуга: ${service}\nДата: ${date}\nВремя: ${time}`, {
         reply_markup: { inline_keyboard: buttons.confirmBooking }
       });
       return ctx.wizard.next();
     }
   },
   
-  // Step 6: Finalize
+  // Step 7: Finalize
   async (ctx) => {
     if (ctx.callbackQuery && ctx.callbackQuery.data === 'confirm_yes') {
-      const { service, serviceId, date, time, carModel, phone } = ctx.wizard.state;
+      const { service, serviceId, date, time, carModel, carNumber, phone } = ctx.wizard.state;
       
       try {
         const core12Data = mapBookingToCore12({
@@ -211,6 +234,7 @@ const bookingWizard = new Scenes.WizardScene(
           date,
           time,
           carModel,
+          carNumber,
           phone
         });
         let crmResult;

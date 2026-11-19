@@ -37,11 +37,13 @@ const mapBookingToCore12 = (botData) => {
     status: "new",
     payment_type: "cash",
     is_payed: false, 
-    comment: `Запись через Telegram бота. Авто: ${botData.carModel}, Тел: +${botData.phone}`,
+    comment: `Запись через Telegram бота. Авто: ${botData.carModel}, Гос. номер: ${botData.carNumber}, Тел: +${botData.phone}`,
+    recognized_number: botData.carNumber,
     
     car: {
+      number: botData.carNumber,
       ownerName: botData.name,
-      comment: `TG ID: ${botData.telegramId}. Авто: ${botData.carModel}. Телефон: +${botData.phone}`
+      comment: `TG ID: ${botData.telegramId}. Авто: ${botData.carModel}. Гос. номер: ${botData.carNumber}. Телефон: +${botData.phone}`
     },
     
     provided_service: {
