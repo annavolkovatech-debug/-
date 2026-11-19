@@ -76,7 +76,7 @@ bot.command('chatid', (ctx) => {
 });
 
 // Reply Keyboard Handlers
-bot.hears('💧 Автомойка', async (ctx) => {
+bot.hears('🚘 Автомойка', async (ctx) => {
   // Выходим из предыдущих сцен, если они были
   await ctx.scene.leave();
   await ctx.reply(texts.chooseWashService, {
@@ -84,21 +84,21 @@ bot.hears('💧 Автомойка', async (ctx) => {
   });
 });
 
-bot.hears('✨ Детейлинг и Ремонт', async (ctx) => {
+bot.hears('💎 Детейлинг и Ремонт', async (ctx) => {
   await ctx.scene.leave();
   await ctx.reply(texts.chooseDetailingService, {
     reply_markup: { inline_keyboard: buttons.detailingServices }
   });
 });
 
-bot.hears('🤝 Выкуп авто', async (ctx) => {
+bot.hears('💵 Выкуп авто', async (ctx) => {
   await ctx.scene.leave();
   await ctx.reply(texts.buyoutInfo, {
     reply_markup: { inline_keyboard: buttons.masterContact }
   });
 });
 
-bot.hears('📋 Мои записи', async (ctx) => {
+bot.hears('🗓 Мои записи', async (ctx) => {
   ctx.scene.leave();
   try {
     const bookings = await db.getUserBookings(ctx.from.id);
