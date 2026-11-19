@@ -120,7 +120,7 @@ bot.hears('📋 Мои записи', async (ctx) => {
 
 bot.hears('📞 Контакты', async (ctx) => {
   ctx.scene.leave();
-  ctx.reply(texts.contactAdmin);
+  ctx.reply(texts.contactAdmin, { parse_mode: 'HTML' });
 });
 
 // Service selection triggers the booking wizard
