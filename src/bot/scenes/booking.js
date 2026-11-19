@@ -157,6 +157,7 @@ const bookingWizard = new Scenes.WizardScene(
       try {
         const slots = await core12Api.getAvailableSlots(dateLabel);
         
+        // Если Core12 вернул пустой массив или упал, fallback генерирует моки (они никогда не пустые)
         // Разбиваем слоты по 3 в ряд для красивой сетки
         const timeButtons = [];
         for (let i = 0; i < slots.length; i += 3) {
@@ -169,6 +170,7 @@ const bookingWizard = new Scenes.WizardScene(
         });
         return ctx.wizard.next();
       } catch (err) {
+        console.error('Error generating timeslots UI:', err);
         await ctx.reply(texts.bookingError);
         return ctx.scene.leave();
       }

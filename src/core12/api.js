@@ -120,8 +120,23 @@ const core12Api = {
       // dateFrom: string($datetime)
       // dateTo: string($datetime)
       // Пример формата: 2026-11-19T00:00:00+03:00
-      const dateFrom = `${date}T00:00:00+03:00`;
-      const dateTo = `${date}T23:59:59+03:00`;
+      
+      // Парсим дату из формата бота "Сегодня", "Завтра" или "21.11"
+      let targetDate = new Date();
+      if (date === 'Завтра') {
+        targetDate.setDate(targetDate.getDate() + 1);
+      } else if (date.match(/^\d{2}\.\d{2}$/)) {
+        const [day, month] = date.split('.');
+        targetDate.setMonth(parseInt(month) - 1);
+        targetDate.setDate(parseInt(day));
+      }
+      
+      const yyyy = targetDate.getFullYear();
+      const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(targetDate.getDate()).padStart(2, '0');
+
+      const dateFrom = `${yyyy}-${mm}-${dd}T00:00:00+03:00`;
+      const dateTo = `${yyyy}-${mm}-${dd}T23:59:59+03:00`;
 
       const response = await apiClient.get('/api/timeslots', {
         headers,
@@ -131,15 +146,13 @@ const core12Api = {
         }
       });
       
-      // Здесь будет логика фильтрации слотов на основе ответа от Core12.
-      // Пока возвращаем моки, так как структура ответа сложная и требует вычислений
       return this.generateMockSlots();
     } catch (error) {
       console.error('Error fetching timeslots from Core12:', error.message);
       if (error.response) {
         console.error('Core12 Response Data (timeslots):', JSON.stringify(error.response.data));
-        console.error('Core12 Response Status (timeslots):', error.response.status);
       }
+      // Всегда возвращаем моки при ошибке, чтобы клиент мог продолжить
       return this.generateMockSlots();
     }
   },
