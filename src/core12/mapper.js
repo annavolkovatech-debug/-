@@ -1,13 +1,23 @@
 const mapBookingToCore12 = (botData) => {
   // Определяем дату
   let targetDate = new Date();
+  
+  if (!botData.date) {
+    botData.date = 'Сегодня';
+  }
+
   if (botData.date === 'Завтра') {
     targetDate.setDate(targetDate.getDate() + 1);
-  } else if (botData.date.match(/^\d{2}\.\d{2}$/)) {
-    // Если формат "21.11"
-    const [day, month] = botData.date.split('.');
-    targetDate.setMonth(parseInt(month) - 1);
-    targetDate.setDate(parseInt(day));
+  } else if (botData.date !== 'Сегодня' && botData.date.includes('.')) {
+    // Если формат "21.11." или "21 нояб."
+    const dateStr = botData.date.replace(/[^\d.]/g, ''); // оставляем только цифры и точки
+    const parts = dateStr.split('.').filter(Boolean);
+    if (parts.length >= 2) {
+      const day = parseInt(parts[0]);
+      const month = parseInt(parts[1]);
+      targetDate.setMonth(month - 1);
+      targetDate.setDate(day);
+    }
   }
   
   const yyyy = targetDate.getFullYear();
@@ -15,7 +25,8 @@ const mapBookingToCore12 = (botData) => {
   const dd = String(targetDate.getDate()).padStart(2, '0');
   
   // Формат времени с учетом таймзоны (Москва)
-  const creationDateISO = `${yyyy}-${mm}-${dd}T${botData.time}:00+03:00`;
+  const time = botData.time || '12:00';
+  const creationDateISO = `${yyyy}-${mm}-${dd}T${time}:00+03:00`;
   
   // Ищем ID автомобиля в справочнике Core12 (заглушка для тестов)
   const defaultCarId = botData.carModel?.toLowerCase().includes('kia rio') ? '8421' : '8421'; 
