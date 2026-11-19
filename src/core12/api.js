@@ -78,6 +78,16 @@ const core12Api = {
     }
   },
 
+  generateMockSlots() {
+    return [
+      '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+      '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+      '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
+      '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
+      '21:00', '21:30', '22:00'
+    ];
+  },
+
   async createCarVisit(botData) {
     try {
       const headers = getAuthHeaders();
@@ -106,22 +116,16 @@ const core12Api = {
       return { id: 'mock_visit_fallback', status: 'mock_created_due_to_error' };
     }
   },
-  
+
   async getAvailableSlots(date) {
     try {
       const headers = getAuthHeaders();
       if (!headers) {
-        return this.generateMockSlots();
+        return core12Api.generateMockSlots();
       }
 
       console.log(`Fetching timeslots from Core12 for date: ${date}`);
       
-      // В Swagger параметры обозначены как query parameters:
-      // dateFrom: string($datetime)
-      // dateTo: string($datetime)
-      // Пример формата: 2026-11-19T00:00:00+03:00
-      
-      // Парсим дату из формата бота "Сегодня", "Завтра" или "21.11"
       let targetDate = new Date();
       if (date === 'Завтра') {
         targetDate.setDate(targetDate.getDate() + 1);
@@ -146,14 +150,13 @@ const core12Api = {
         }
       });
       
-      return this.generateMockSlots();
+      return core12Api.generateMockSlots();
     } catch (error) {
       console.error('Error fetching timeslots from Core12:', error.message);
       if (error.response) {
         console.error('Core12 Response Data (timeslots):', JSON.stringify(error.response.data));
       }
-      // Всегда возвращаем моки при ошибке, чтобы клиент мог продолжить
-      return this.generateMockSlots();
+      return core12Api.generateMockSlots();
     }
   },
   
