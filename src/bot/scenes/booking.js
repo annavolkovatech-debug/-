@@ -1,7 +1,7 @@
 const { Scenes, Markup } = require('telegraf');
 const { texts, buttons } = require('../texts');
 const core12Api = require('../../core12/api');
-const { mapBookingData } = require('../../core12/mapper');
+const { mapBookingToCore12 } = require('../../core12/mapper');
 const db = require('../../supabase/services');
 
 const bookingWizard = new Scenes.WizardScene(
@@ -203,7 +203,7 @@ const bookingWizard = new Scenes.WizardScene(
       const { service, serviceId, date, time, carModel, phone } = ctx.wizard.state;
       
       try {
-        const core12Data = mapBookingData({
+        const core12Data = mapBookingToCore12({
           telegramId: ctx.from.id,
           name: ctx.from.first_name,
           service,
