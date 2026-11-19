@@ -1,5 +1,4 @@
 const axios = require('axios');
-const qs = require('qs'); // Для корректного парсинга вложенных объектов в x-www-form-urlencoded
 require('dotenv').config();
 
 const CORE12_API_URL = process.env.CORE12_API_URL || 'https://cid3027.core12.ru'; // Используем домен из скриншота
@@ -17,7 +16,7 @@ const getAuthHeaders = () => {
   
   return {
     'Authorization': `Basic ${base64Credentials}`,
-    'Content-Type': 'application/x-www-form-urlencoded'
+    'Content-Type': 'application/json'
   };
 };
 
@@ -25,8 +24,8 @@ const getAuthHeaders = () => {
 const apiClient = axios.create({
   baseURL: CORE12_API_URL,
   headers: {
-    // Возвращаем x-www-form-urlencoded, так как Swagger говорит именно об этом
-    'Content-Type': 'application/x-www-form-urlencoded', 
+    // В Swagger явно указано application/json для этого метода в разделе "Parameter content type"
+    'Content-Type': 'application/json', 
     'Accept': 'application/json'
   }
 });
@@ -87,13 +86,10 @@ const core12Api = {
         return { id: 'mock_visit_' + Date.now(), status: 'new' };
       }
 
-      // Используем библиотеку qs, чтобы вложенные объекты превратились в правильный URL encoded формат
-      // Например: car[ownerName]=Имя&car[comment]=...
-      const encodedData = qs.stringify(visitData, { allowDots: true, encode: true });
-      
-      console.log(`Sending payload to Core12 (x-www-form-urlencoded):`, encodedData);
+      // Возвращаем JSON, так как Core12 работает с application/json
+      console.log(`Sending payload to Core12 (JSON):`, JSON.stringify(visitData));
 
-      const response = await apiClient.post('/api/car-visits', encodedData, {
+      const response = await apiClient.post('/api/car-visits', visitData, {
         headers
       });
       return response.data;
@@ -119,7 +115,8 @@ const core12Api = {
       const response = await apiClient.get('/api/timeslots', {
         headers,
         params: {
-          date: date // Передаем дату в качестве параметра запроса (query parameter)
+          dateFrom: `${date}T00:00:00.000Z`,
+          dateTo: `${date}T23:59:59.999Z`
         }
       });
       
