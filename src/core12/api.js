@@ -88,7 +88,7 @@ const core12Api = {
     ];
   },
 
-  async createCarVisit(botData) {
+  async createCarVisit(visitData) {
     try {
       const headers = getAuthHeaders();
       
@@ -96,8 +96,6 @@ const core12Api = {
         console.warn('⚠️ CORE12 credentials missing. Mocking visit creation.');
         return { id: 'mock_visit_' + Date.now(), status: 'new' };
       }
-
-      const visitData = mapBookingToCore12(botData);
 
       // Возвращаем JSON, так как Core12 работает с application/json
       console.log(`Sending payload to Core12 (JSON):`, JSON.stringify(visitData));

@@ -176,6 +176,7 @@ const bookingWizard = new Scenes.WizardScene(
       else dateLabel = selectedDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
 
       ctx.wizard.state.date = dateLabel;
+      ctx.wizard.state.isoDate = selectedDate.toISOString();
       
       try {
         const slots = await core12Api.getAvailableSlots(dateLabel);
@@ -223,7 +224,7 @@ const bookingWizard = new Scenes.WizardScene(
   // Step 7: Finalize
   async (ctx) => {
     if (ctx.callbackQuery && ctx.callbackQuery.data === 'confirm_yes') {
-      const { service, serviceId, date, time, carModel, carNumber, phone } = ctx.wizard.state;
+      const { service, serviceId, date, isoDate, time, carModel, carNumber, phone } = ctx.wizard.state;
       
       try {
         const core12Data = mapBookingToCore12({
@@ -232,6 +233,7 @@ const bookingWizard = new Scenes.WizardScene(
           service,
           serviceId,
           date,
+          isoDate,
           time,
           carModel,
           carNumber,

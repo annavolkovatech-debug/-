@@ -2,21 +2,25 @@ const mapBookingToCore12 = (botData) => {
   // Определяем дату
   let targetDate = new Date();
   
-  if (!botData.date) {
-    botData.date = 'Сегодня';
-  }
+  if (botData.isoDate) {
+    targetDate = new Date(botData.isoDate);
+  } else {
+    if (!botData.date) {
+      botData.date = 'Сегодня';
+    }
 
-  if (botData.date === 'Завтра') {
-    targetDate.setDate(targetDate.getDate() + 1);
-  } else if (botData.date !== 'Сегодня' && botData.date.includes('.')) {
-    // Если формат "21.11." или "21 нояб."
-    const dateStr = botData.date.replace(/[^\d.]/g, ''); // оставляем только цифры и точки
-    const parts = dateStr.split('.').filter(Boolean);
-    if (parts.length >= 2) {
-      const day = parseInt(parts[0]);
-      const month = parseInt(parts[1]);
-      targetDate.setMonth(month - 1);
-      targetDate.setDate(day);
+    if (botData.date === 'Завтра') {
+      targetDate.setDate(targetDate.getDate() + 1);
+    } else if (botData.date !== 'Сегодня' && botData.date.includes('.')) {
+      // Оставляем как fallback для совместимости
+      const dateStr = botData.date.replace(/[^\d.]/g, ''); 
+      const parts = dateStr.split('.').filter(Boolean);
+      if (parts.length >= 2) {
+        const day = parseInt(parts[0]);
+        const month = parseInt(parts[1]);
+        targetDate.setMonth(month - 1);
+        targetDate.setDate(day);
+      }
     }
   }
   
@@ -27,6 +31,9 @@ const mapBookingToCore12 = (botData) => {
   // Формат времени с учетом таймзоны (Москва)
   const time = botData.time || '12:00';
   const creationDateISO = `${yyyy}-${mm}-${dd}T${time}:00+03:00`;
+  // Добавляем exit_date и processed_date на всякий случай
+  const exitDateISO = `${yyyy}-${mm}-${dd}T${time}:00+03:00`;
+
   
   // Ищем ID автомобиля в справочнике Core12 (заглушка для тестов)
   const defaultCarId = botData.carModel?.toLowerCase().includes('kia rio') ? '8421' : '8421'; 
@@ -34,6 +41,8 @@ const mapBookingToCore12 = (botData) => {
   // Строго по примеру из Swagger Core12
   return {
     creation_date: creationDateISO,
+    exit_date: exitDateISO,
+    processed_date: exitDateISO,
     status: "new",
     checkup: "verified", // Подтверждаем номер автоматически
     veracity: "strong",  // Высокая достоверность
