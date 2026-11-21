@@ -106,15 +106,64 @@ bot.hears('🗓 Мои записи', async (ctx) => {
       return ctx.reply(texts.myBookingsEmpty);
     }
     
-    let replyText = 'Ваши активные записи:\n\n';
-    bookings.forEach((b, i) => {
-      replyText += `${i + 1}. Услуга: ${b.service_name}\nДата: ${b.booking_date}\nВремя: ${b.booking_time}\nСтатус: ${b.status}\n\n`;
-    });
+    const activeBookings = bookings.filter(b => b.status !== 'cancelled');
+    if (activeBookings.length === 0) {
+      return ctx.reply('У вас нет активных записей.');
+    }
     
-    ctx.reply(replyText);
+    await ctx.reply('Ваши активные записи:');
+    for (const b of activeBookings) {
+      const text = `Услуга: ${b.service_name}\nДата: ${b.booking_date}\nВремя: ${b.booking_time}\nСтатус: Подтверждена`;
+      await ctx.reply(text, {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '❌ Отменить', callback_data: `cancel_${b.id}` }],
+            [{ text: '🔄 Перезаписаться', callback_data: `reschedule_${b.id}` }]
+          ]
+        }
+      });
+    }
   } catch (err) {
-    console.error(err);
-    ctx.reply(texts.bookingError);
+    console.error('Error fetching bookings:', err);
+    ctx.reply('Произошла ошибка при загрузке записей.');
+  }
+});
+
+// Обработка отмены записи
+bot.action(/^cancel_(.+)$/, async (ctx) => {
+  const id = ctx.match[1];
+  try {
+    await db.cancelBooking(id);
+    await ctx.editMessageText(ctx.callbackQuery.message.text + '\n\n❌ <b>ЗАПИСЬ ОТМЕНЕНА</b>', { parse_mode: 'HTML' });
+    await ctx.answerCbQuery('Запись успешно отменена');
+    
+    // Уведомление админов
+    const adminChatId = process.env.ADMIN_CHAT_ID;
+    if (adminChatId) {
+      const username = ctx.from.username ? `@${ctx.from.username}` : ctx.from.first_name;
+      await ctx.telegram.sendMessage(adminChatId, `❌ <b>Отмена записи!</b>\n\nКлиент: ${username}\n${ctx.callbackQuery.message.text}`, { parse_mode: 'HTML' });
+    }
+  } catch (err) {
+    console.error('Error cancelling booking:', err);
+    await ctx.answerCbQuery('Ошибка при отмене записи');
+  }
+});
+
+// Обработка перезаписи
+bot.action(/^reschedule_(.+)$/, async (ctx) => {
+  const id = ctx.match[1];
+  try {
+    await db.cancelBooking(id);
+    await ctx.editMessageText(ctx.callbackQuery.message.text + '\n\n🔄 <b>ПЕРЕЗАПИСЬ (старая отменена)</b>', { parse_mode: 'HTML' });
+    await ctx.answerCbQuery('Старая запись отменена. Давайте выберем новое время.');
+    
+    // Предлагаем выбрать новую услугу для записи
+    await ctx.reply('Выберите услугу для новой записи:', {
+      reply_markup: { inline_keyboard: buttons.washServices }
+    });
+  } catch (err) {
+    console.error('Error rescheduling booking:', err);
+    await ctx.answerCbQuery('Ошибка при перезаписи');
   }
 });
 

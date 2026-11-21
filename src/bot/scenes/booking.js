@@ -38,6 +38,25 @@ const bookingWizard = new Scenes.WizardScene(
     ctx.wizard.state.serviceId = selectedService.id; // Для маппинга в Core12
     
     // Спрашиваем марку машины перед выбором даты
+    if (ctx.session && ctx.session.userData && ctx.session.userData.phone) {
+      const ud = ctx.session.userData;
+      ctx.wizard.state.tempUserData = ud;
+      
+      const text = `Мы помним ваши данные:\n🚙 Авто: ${ud.carModel}\n🔢 Гос. номер: ${ud.carNumber}\n📞 Телефон: +${ud.phone}\n\nИспользовать их для новой записи?`;
+      
+      const kb = Markup.inlineKeyboard([
+        [Markup.button.callback('✅ Да, использовать', 'use_saved_data')],
+        [Markup.button.callback('❌ Нет, ввести новые', 'use_new_data')]
+      ]);
+      
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(text, kb);
+      } else {
+        await ctx.reply(text, kb);
+      }
+      return ctx.wizard.next();
+    }
+
     if (ctx.callbackQuery) {
       await ctx.editMessageText('Напишите марку и модель вашего автомобиля (например: Kia Rio):');
     } else {
@@ -49,6 +68,36 @@ const bookingWizard = new Scenes.WizardScene(
   // Step 2: Handle Car Model Input
   async (ctx, next) => {
     try {
+      if (ctx.callbackQuery && ctx.callbackQuery.data === 'use_saved_data') {
+        const ud = ctx.wizard.state.tempUserData;
+        ctx.wizard.state.carModel = ud.carModel;
+        ctx.wizard.state.carNumber = ud.carNumber;
+        ctx.wizard.state.phone = ud.phone;
+        
+        const dates = [];
+        const today = new Date();
+        for (let i = 0; i < 5; i++) {
+          const d = new Date(today);
+          d.setDate(today.getDate() + i);
+          const label = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+          const payload = `date_${i}`;
+          if (i % 2 === 0) {
+            dates.push([Markup.button.callback(label, payload)]);
+          } else {
+            dates[Math.floor(i / 2)].push(Markup.button.callback(label, payload));
+          }
+        }
+        
+        await ctx.editMessageText(`Автомобиль: ${ud.carModel}\nГос. номер: ${ud.carNumber}\nТелефон: +${ud.phone}\n\nВыберите дату для визита:`, {
+          reply_markup: { inline_keyboard: dates }
+        });
+        
+        return ctx.wizard.selectStep(4);
+      } else if (ctx.callbackQuery && ctx.callbackQuery.data === 'use_new_data') {
+        await ctx.editMessageText('Напишите марку и модель вашего автомобиля (например: Kia Rio):');
+        return; // Остаемся на этом шаге и ждем текст
+      }
+
       await db.logEvent(ctx.from.id, 'debug', { message: 'Reached Step 2', text: ctx.message?.text });
       
       if (ctx.message && ctx.message.text && Object.values(buttons.replyKeyboard).flat().some(btn => btn.text === ctx.message.text)) {
@@ -128,9 +177,17 @@ const bookingWizard = new Scenes.WizardScene(
       });
       return ctx.scene.leave();
     }
-
+    
     ctx.wizard.state.phone = phone;
     await db.updateUserPhone(ctx.from.id, phone).catch(() => {});
+    
+    // Сохраняем данные пользователя в сессии для будущих записей
+    if (!ctx.session) ctx.session = {};
+    ctx.session.userData = {
+      carModel: ctx.wizard.state.carModel,
+      carNumber: ctx.wizard.state.carNumber,
+      phone: phone
+    };
 
     const dates = [];
     const today = new Date();
@@ -140,11 +197,7 @@ const bookingWizard = new Scenes.WizardScene(
       const d = new Date(today);
       d.setDate(today.getDate() + i);
       
-      let label = '';
-      if (i === 0) label = 'Сегодня';
-      else if (i === 1) label = 'Завтра';
-      else label = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-      
+      const label = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
       const payload = `date_${i}`; // date_0, date_1, etc.
       
       // По 2 кнопки в ряд
@@ -170,16 +223,13 @@ const bookingWizard = new Scenes.WizardScene(
       const selectedDate = new Date();
       selectedDate.setDate(selectedDate.getDate() + offsetIndex);
       
-      let dateLabel = '';
-      if (offsetIndex === 0) dateLabel = 'Сегодня';
-      else if (offsetIndex === 1) dateLabel = 'Завтра';
-      else dateLabel = selectedDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+      const dateLabel = selectedDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
 
       ctx.wizard.state.date = dateLabel;
       ctx.wizard.state.isoDate = selectedDate.toISOString();
       
       try {
-        const slots = await core12Api.getAvailableSlots(dateLabel);
+        const slots = await core12Api.getAvailableSlots(dateLabel, ctx.wizard.state.isoDate);
         
         // Если Core12 вернул пустой массив или упал, fallback генерирует моки (они никогда не пустые)
         // Разбиваем слоты по 3 в ряд для красивой сетки

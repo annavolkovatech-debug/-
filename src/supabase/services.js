@@ -53,6 +53,14 @@ const db = {
     return data;
   },
 
+  async cancelBooking(id) {
+    const { error } = await supabase
+      .from('bookings')
+      .update({ status: 'cancelled' })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
   async getMailings(status = 'pending') {
     const { data, error } = await supabase
       .from('mailings')

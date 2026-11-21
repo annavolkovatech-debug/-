@@ -115,22 +115,26 @@ const core12Api = {
     }
   },
 
-  async getAvailableSlots(date) {
+  async getAvailableSlots(dateLabel, isoDateStr) {
     try {
       const headers = getAuthHeaders();
       if (!headers) {
         return core12Api.generateMockSlots();
       }
 
-      console.log(`Fetching timeslots from Core12 for date: ${date}`);
+      console.log(`Fetching timeslots from Core12 for date: ${dateLabel}`);
       
       let targetDate = new Date();
-      if (date === 'Завтра') {
-        targetDate.setDate(targetDate.getDate() + 1);
-      } else if (date.match(/^\d{2}\.\d{2}$/)) {
-        const [day, month] = date.split('.');
-        targetDate.setMonth(parseInt(month) - 1);
-        targetDate.setDate(parseInt(day));
+      if (isoDateStr) {
+        targetDate = new Date(isoDateStr);
+      } else {
+        if (dateLabel === 'Завтра') {
+          targetDate.setDate(targetDate.getDate() + 1);
+        } else if (dateLabel.match(/^\d{2}\.\d{2}$/)) {
+          const [day, month] = dateLabel.split('.');
+          targetDate.setMonth(parseInt(month) - 1);
+          targetDate.setDate(parseInt(day));
+        }
       }
       
       const yyyy = targetDate.getFullYear();
